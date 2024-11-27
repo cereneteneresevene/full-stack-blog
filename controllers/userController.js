@@ -3,21 +3,29 @@ const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 
 const registerUser = async (req, res) => {
-  const { username, email, password } = req.body;
-
   try {
-    const userExists = await User.findOne({ email });
-    if (userExists) {
-      return res.status(400).json({ message: 'Email already exists' });
-    }
+    const { username, email, password, role } = req.body;
 
-    const user = new User({ username, email, password });
-    await user.save();
-    res.status(201).json({ message: 'User registered successfully' });
+    // Varsayılan olarak rol "user"
+    const userRole = role || 'user';
+
+    // Şifreyi hashle
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    const newUser = new User({
+      username,
+      email,
+      password: hashedPassword, // Hashlenmiş şifreyi kaydet
+      role: userRole,
+    });
+
+    await newUser.save();
+    res.status(201).json({ message: 'User registered successfully', user: { id: newUser._id, username: newUser.username, email: newUser.email, role: newUser.role } });
   } catch (error) {
-    res.status(500).json({ message: 'Error registering user', error });
+    res.status(500).json({ message: 'Error registering user', error: error.message });
   }
 };
+
 
 const loginUser = async (req, res) => {
     const { email, password } = req.body;

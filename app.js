@@ -5,6 +5,7 @@ const userRoutes = require('./routes/userRoutes');
 const blogRoutes = require('./routes/blogRoutes');
 const categoryRoutes = require('./routes/categoryRoutes');
 const tagRoutes = require('./routes/tagRoutes');
+const adminRoutes = require('./routes/adminRoutes');
 
 const app = express();
 
@@ -23,6 +24,7 @@ app.use('/api/users', userRoutes);
 app.use('/api/blogs', blogRoutes);
 app.use('/api/categories', categoryRoutes);
 app.use('/api/tags', tagRoutes);
+app.use('/api/admin', adminRoutes);
 
 // Port ve Sunucu Başlatma
 const PORT = process.env.PORT || 5000;

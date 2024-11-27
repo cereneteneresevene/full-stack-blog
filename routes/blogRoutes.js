@@ -11,14 +11,15 @@ const {
   deleteComment
 } = require('../controllers/blogController');
 const authenticateToken = require('../middleware/authenticateToken'); 
+const upload = require('../middleware/uploadImage');
 
 const router = express.Router();
 
 // CRUD operasyonları
-router.post('/', authenticateToken, createBlog); 
+router.post('/', authenticateToken, upload.single('image'), createBlog);
 router.get('/', getAllBlogs); 
 router.get('/:id', getBlogById);
-router.put('/:id', authenticateToken, updateBlog); 
+router.put('/:id', authenticateToken, upload.single('image'), updateBlog);
 router.delete('/:id', authenticateToken, deleteBlog); 
 
 // Beğeni işlemleri

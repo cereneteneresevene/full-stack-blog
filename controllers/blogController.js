@@ -4,12 +4,15 @@ const Tag = require('../models/tag');
 
 
 const createBlog = async (req, res) => {
-  const { title, content, categoryNames, tagNames } = req.body; 
+  const { title, content, categoryNames, tagNames } = req.body;
 
   try {
     if (!['writer', 'admin'].includes(req.user.role)) {
       return res.status(403).json({ message: 'Only writers and admins can create blogs' });
     }
+
+    // Resim URL'sini alın (Eğer varsa)
+    const imageUrl = req.file ? `/uploads/${req.file.filename}` : '';
 
     const categories = await Promise.all(
       categoryNames.map(async (name) => {
@@ -17,7 +20,7 @@ const createBlog = async (req, res) => {
         if (!category) {
           category = await Category.create({ name, description: `${name} category` });
         }
-        return category._id; 
+        return category._id;
       })
     );
 
@@ -27,7 +30,7 @@ const createBlog = async (req, res) => {
         if (!tag) {
           tag = await Tag.create({ name });
         }
-        return tag._id; 
+        return tag._id;
       })
     );
 
@@ -37,6 +40,7 @@ const createBlog = async (req, res) => {
       author: req.user.id,
       categories,
       tags,
+      image: imageUrl, // Resim URL'sini ekleyin
     });
 
     const savedBlog = await newBlog.save();
@@ -105,7 +109,7 @@ const getBlogById = async (req, res) => {
 };
 
 const updateBlog = async (req, res) => {
-  const { title, content, categoryNames = [], tagNames = [] } = req.body; 
+  const { title, content, categoryNames = [], tagNames = [] } = req.body;
 
   try {
     const blog = await Blog.findById(req.params.id);
@@ -116,6 +120,8 @@ const updateBlog = async (req, res) => {
     if (blog.author.toString() !== req.user.id && req.user.role !== 'admin') {
       return res.status(403).json({ message: 'Not authorized to update this blog' });
     }
+
+    const imageUrl = req.file ? `/uploads/${req.file.filename}` : blog.image;
 
     const categories = await Promise.all(
       categoryNames.map(async (name) => {
@@ -139,6 +145,7 @@ const updateBlog = async (req, res) => {
 
     blog.title = title || blog.title;
     blog.content = content || blog.content;
+    blog.image = imageUrl; // Resim URL'sini güncelleyin
     if (categories.length > 0) blog.categories = categories;
     if (tags.length > 0) blog.tags = tags;
 

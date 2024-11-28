@@ -8,12 +8,16 @@ const {
   likeBlog,
   addComment,
   updateComment,
-  deleteComment
+  deleteComment,
+  searchBlogs
 } = require('../controllers/blogController');
 const authenticateToken = require('../middleware/authenticateToken'); 
 const upload = require('../middleware/uploadImage');
 
 const router = express.Router();
+
+//Arama ve filtreleme
+router.get('/search', searchBlogs);
 
 // CRUD operasyonları
 router.post('/', authenticateToken, upload.single('image'), createBlog);

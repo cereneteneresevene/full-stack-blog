@@ -1,7 +1,7 @@
 const Blog = require('../models/blog');
 const Category = require('../models/category');
 const Tag = require('../models/tag');
-
+const User = require('../models/user');
 
 const createBlog = async (req, res) => {
   const { title, content, categoryNames, tagNames } = req.body;
@@ -11,7 +11,6 @@ const createBlog = async (req, res) => {
       return res.status(403).json({ message: 'Only writers and admins can create blogs' });
     }
 
-    // Resim URL'sini alın (Eğer varsa)
     const imageUrl = req.file ? `/uploads/${req.file.filename}` : '';
 
     const categories = await Promise.all(
@@ -40,7 +39,7 @@ const createBlog = async (req, res) => {
       author: req.user.id,
       categories,
       tags,
-      image: imageUrl, // Resim URL'sini ekleyin
+      image: imageUrl,
     });
 
     const savedBlog = await newBlog.save();
@@ -274,6 +273,65 @@ const deleteComment = async (req, res) => {
   }
 };
 
+const searchBlogs = async (req, res) => {
+  try {
+    const { keyword, category, tags, author, sortBy, sortOrder } = req.query;
+
+    const filter = {};
+
+    // Başlık, içerik ve yazar ismine göre arama
+    if (keyword) {
+      filter.$or = [
+        { title: { $regex: keyword, $options: 'i' } },
+        { content: { $regex: keyword, $options: 'i' } },
+        { 'author.username': { $regex: keyword, $options: 'i' } }, // Yazar adı eşleşmesi
+      ];
+    }
+
+    // Kategori adına göre filtreleme
+    if (category) {
+      const categoryObjects = await Category.find({ name: { $regex: category, $options: 'i' } }, '_id');
+      const categoryIds = categoryObjects.map((cat) => cat._id);
+      filter.categories = { $in: categoryIds }; // Kategori ID'lerini eşleştir
+    }
+
+    // Tag adına göre filtreleme
+    if (tags) {
+      const tagNames = tags.split(',');
+      const tagObjects = await Tag.find({ name: { $in: tagNames } }, '_id');
+      const tagIds = tagObjects.map((tag) => tag._id);
+      filter.tags = { $in: tagIds }; // Tag ID'lerini eşleştir
+    }
+
+    // Yazar adına göre filtreleme (tam eşleşme)
+    if (author) {
+      const authorObject = await User.findOne({ username: { $regex: author, $options: 'i' } }, '_id');
+      if (authorObject) filter.author = authorObject._id;
+    }
+
+    // Sıralama kriterleri
+    let sort = {};
+    if (sortBy === 'likes') {
+      sort = { likes: sortOrder === 'asc' ? 1 : -1 }; // Beğeni sayısına göre azalan/artan
+    } else if (sortBy === 'views') {
+      sort = { views: sortOrder === 'asc' ? 1 : -1 }; // Görüntülenme sayısına göre azalan/artan
+    } else {
+      sort = { createdAt: -1 }; // Varsayılan sıralama: en son eklenen
+    }
+
+    // Blogları getir
+    const blogs = await Blog.find(filter)
+      .populate('author', 'username email') // Yazar bilgileri
+      .populate('categories', 'name description') // Kategori bilgileri
+      .populate('tags', 'name') // Tag bilgileri
+      .sort(sort);
+
+    res.status(200).json(blogs);
+  } catch (error) {
+    res.status(500).json({ message: 'Error fetching blogs', error: error.message });
+  }
+};
+
 module.exports = {
   createBlog,
   getAllBlogs,
@@ -283,5 +341,6 @@ module.exports = {
   likeBlog,
   addComment,
   updateComment,
-  deleteComment
+  deleteComment,
+  searchBlogs
 };

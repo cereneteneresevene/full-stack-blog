@@ -5,9 +5,10 @@ const User = require('../models/user');
 
 const createBlog = async (req, res) => {
   try {
-    console.log("Gelen Body:", req.body); // Debug: Gelen veriler
-    console.log("Category Names (Raw):", req.body.categoryNames);
-    console.log("Tag Names (Raw):", req.body.tagNames);
+    console.log("Gelen Body:", req.body);
+    console.log("Category Names:", req.body.categoryNames);
+    console.log("Tag Names:", req.body.tagNames);
+    console.log("Image:", req.file);    
 
     // Gelen verilerin destructure edilmesi
     const { title, content, categoryNames, tagNames } = req.body;
@@ -20,8 +21,8 @@ const createBlog = async (req, res) => {
     }
 
     // **Kategori ve Etiketlerin JSON Array Formatında Olup Olmadığını Kontrol Et**
-    let parsedCategoryNames = [];
-    let parsedTagNames = [];
+    parsedCategoryNames = JSON.parse(categoryNames || "[]");
+    parsedTagNames = JSON.parse(tagNames || "[]");
     try {
       parsedCategoryNames = JSON.parse(categoryNames || "[]");
       parsedTagNames = JSON.parse(tagNames || "[]");

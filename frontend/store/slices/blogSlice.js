@@ -18,25 +18,19 @@ export const fetchBlogDetail = createAsyncThunk(
 
 // Yeni blog oluşturmak için API çağrısı
 export const createBlog = createAsyncThunk(
-  'blogs/createBlog',
-  async (formData, { getState, rejectWithValue }) => {
+  "blogs/createBlog",
+  async ({ formData, token }, { rejectWithValue }) => {
     try {
-      const state = getState();
-      const token = state.auth.token;
-
-      if (!token) throw new Error('Yetkilendirme hatası. Token yok.');
-
-      const response = await axios.post('http://localhost:5000/api/blogs', formData, {
+      const response = await axios.post("http://localhost:5000/api/blogs", formData, {
         headers: {
+          "Content-Type": "multipart/form-data",
           Authorization: `Bearer ${token}`,
         },
       });
 
       return response.data;
     } catch (error) {
-      return rejectWithValue(
-        error.response?.data?.message || 'Blog oluşturulurken bir hata oluştu.'
-      );
+      return rejectWithValue(error.response.data);
     }
   }
 );
@@ -92,11 +86,11 @@ const blogSlice = createSlice({
       })
       .addCase(createBlog.fulfilled, (state, action) => {
         state.loading = false;
-        state.blogs.unshift(action.payload); // Yeni blogu listeye en başa ekle
+        state.blogs.push(action.payload.blog);
       })
       .addCase(createBlog.rejected, (state, action) => {
         state.loading = false;
-        state.error = action.payload; // Hata mesajını sakla
+        state.error = action.payload || "Blog oluşturulamadı.";
       });
   },
 });

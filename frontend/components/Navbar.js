@@ -130,7 +130,7 @@ const Navbar = ({ setSelectedCategory, setSearchQuery }) => {
             <div className="flex items-center space-x-4">
               <span className="text-white">{user.username}</span>
               {/* Blog Oluştur Butonu */}
-              {(user.role === "auth" || user.role === "admin") && (
+              {(user.role === "writer" || user.role === "admin") && (
                 <Link href="/create-blog">
                   <button className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600">
                     Blog Oluştur

@@ -36,13 +36,21 @@ const Auth = () => {
   const handleLogin = async (e) => {
     e.preventDefault();
     const result = await dispatch(loginUser(loginData));
+  
     if (loginUser.fulfilled.match(result)) {
       toast.success("Giriş başarılı!");
       setLoginData({ email: "", password: "" });
-      router.push("/"); // Anasayfaya yönlendirme
+  
+      // Kullanıcı rolünü kontrol ederek yönlendirme
+      const role = result.payload.user.role; // Kullanıcının rolü
+      if (role === "admin") {
+        router.push("/admin"); // Eğer kullanıcı admin ise admin paneline yönlendir
+      } else {
+        router.push("/"); // Normal kullanıcı için ana sayfaya yönlendir
+      }
     }
   };
-
+  
   useEffect(() => {
     if (error) {
       toast.error(error); // Hata mesajını toast olarak göster

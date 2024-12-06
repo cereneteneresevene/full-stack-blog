@@ -2,6 +2,7 @@ const Blog = require('../models/blog');
 const Category = require('../models/category');
 const Tag = require('../models/tag');
 const User = require('../models/user');
+const mongoose = require('mongoose');
 
 const createBlog = async (req, res) => {
   try {
@@ -176,69 +177,93 @@ const getBlogById = async (req, res) => {
 const updateBlog = async (req, res) => {
   const { title, content, categoryNames = [], tagNames = [] } = req.body;
 
+  // Blog ID Kontrolü
+  console.log("Gelen Blog ID:", req.params.id);
+  if (!req.params.id) {
+    return res.status(400).json({ message: "Blog ID'si eksik." });
+  }
+
+  // Blog ID Format Doğrulaması
+  if (!mongoose.isValidObjectId(req.params.id)) {
+    return res.status(400).json({ message: "Geçersiz Blog ID." });
+  }
+
   try {
     const blog = await Blog.findById(req.params.id);
     if (!blog) {
-      return res.status(404).json({ message: 'Blog not found' });
+      return res.status(404).json({ message: 'Blog bulunamadı.' });
     }
 
     if (blog.author.toString() !== req.user.id && req.user.role !== 'admin') {
-      return res.status(403).json({ message: 'Not authorized to update this blog' });
+      return res.status(403).json({ message: 'Bu blogu güncelleme yetkiniz yok.' });
     }
 
     const imageUrl = req.file ? `/uploads/${req.file.filename}` : blog.image;
 
-    const categories = await Promise.all(
-      categoryNames.map(async (name) => {
-        let category = await Category.findOne({ name });
-        if (!category) {
-          category = await Category.create({ name, description: `${name} category` });
-        }
-        return category._id;
-      })
-    );
+    let categories = blog.categories;
+    if (categoryNames.length > 0) {
+      categories = await Promise.all(
+        categoryNames.map(async (name) => {
+          let category = await Category.findOne({ name });
+          if (!category) {
+            category = await Category.create({ name, description: `${name} category` });
+          }
+          return category._id;
+        })
+      );
+    }
 
-    const tags = await Promise.all(
-      tagNames.map(async (name) => {
-        let tag = await Tag.findOne({ name });
-        if (!tag) {
-          tag = await Tag.create({ name });
-        }
-        return tag._id;
-      })
-    );
+    let tags = blog.tags;
+    if (tagNames.length > 0) {
+      tags = await Promise.all(
+        tagNames.map(async (name) => {
+          let tag = await Tag.findOne({ name });
+          if (!tag) {
+            tag = await Tag.create({ name });
+          }
+          return tag._id;
+        })
+      );
+    }
 
     blog.title = title || blog.title;
     blog.content = content || blog.content;
-    blog.image = imageUrl; // Resim URL'sini güncelleyin
-    if (categories.length > 0) blog.categories = categories;
-    if (tags.length > 0) blog.tags = tags;
+    blog.image = imageUrl;
+    blog.categories = categories;
+    blog.tags = tags;
 
     const updatedBlog = await blog.save();
-    res.status(200).json(updatedBlog);
+    res.status(200).json({
+      message: "Blog başarıyla güncellendi.",
+      blog: updatedBlog,
+    });
   } catch (error) {
-    res.status(500).json({ message: 'Error updating blog', error: error.message });
+    console.error("Hata:", error.message);
+    res.status(500).json({ message: 'Blog güncellenirken bir hata oluştu.', error: error.message });
   }
 };
 
 const deleteBlog = async (req, res) => {
   try {
+    console.log("Gelen Blog ID:", req.params.id); // Gelen ID'yi kontrol edin
+
     const blog = await Blog.findById(req.params.id);
     if (!blog) {
-      return res.status(404).json({ message: 'Blog not found' });
+      return res.status(404).json({ message: "Blog not found" });
     }
 
-    if (blog.author.toString() !== req.user.id && req.user.role !== 'admin') {
-      return res.status(403).json({ message: 'Not authorized to delete this blog' });
+    if (blog.author.toString() !== req.user.id && req.user.role !== "admin") {
+      return res.status(403).json({ message: "Not authorized to delete this blog" });
     }
 
-    await Blog.deleteOne({ _id: blog._id });
-
-    res.status(200).json({ message: 'Blog deleted successfully' });
+    await blog.deleteOne();
+    res.status(200).json({ message: "Blog deleted successfully" });
   } catch (error) {
-    res.status(500).json({ message: 'Error deleting blog', error: error.message });
+    console.error("Silme hatası:", error.message); // Detaylı hata mesajı
+    res.status(500).json({ message: "Error deleting blog", error: error.message });
   }
 };
+
 
 const likeBlog = async (req, res) => {
     try {

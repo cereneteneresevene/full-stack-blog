@@ -35,6 +35,45 @@ export const createBlog = createAsyncThunk(
   }
 );
 
+// Blog güncellemek için API çağrısı
+export const updateBlog = createAsyncThunk(
+  "blogs/updateBlog",
+  async ({ blogId, formData, token }, { rejectWithValue }) => {
+    try {
+      const response = await axios.put(
+        `http://localhost:5000/api/blogs/${blogId}`,
+        formData,
+        {
+          headers: {
+            "Content-Type": "multipart/form-data",
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+      return response.data;
+    } catch (error) {
+      return rejectWithValue(error.response.data);
+    }
+  }
+);
+
+// Blog silmek için API çağrısı
+export const deleteBlog = createAsyncThunk(
+  "blogs/deleteBlog",
+  async ({ blogId, token }, { rejectWithValue }) => {
+    try {
+      const response = await axios.delete(`http://localhost:5000/api/blogs/${blogId}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      return blogId; // Silinen blog ID'sini döndür
+    } catch (error) {
+      return rejectWithValue(error.response.data);
+    }
+  }
+);
+
 const blogSlice = createSlice({
   name: 'blogs',
   initialState: {
@@ -91,6 +130,38 @@ const blogSlice = createSlice({
       .addCase(createBlog.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload || "Blog oluşturulamadı.";
+      })
+
+      // Blog güncelleme
+      .addCase(updateBlog.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(updateBlog.fulfilled, (state, action) => {
+        state.loading = false;
+        const updatedBlog = action.payload;
+        const index = state.blogs.findIndex((blog) => blog.id === updatedBlog.id);
+        if (index !== -1) {
+          state.blogs[index] = updatedBlog; // Blog listesini güncelle
+        }
+      })
+      .addCase(updateBlog.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload || "Blog güncellenemedi.";
+      })
+
+      // Blog silme
+      .addCase(deleteBlog.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(deleteBlog.fulfilled, (state, action) => {
+        state.loading = false;
+        state.blogs = state.blogs.filter((blog) => blog.id !== action.payload);
+      })
+      .addCase(deleteBlog.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload || "Blog silinemedi.";
       });
   },
 });

@@ -57,6 +57,18 @@ const loginUser = async (req, res) => {
       res.status(500).json({ message: 'Error logging in', error });
     }
 };
-  
 
-module.exports = { registerUser, loginUser };
+const getUserById = async (req, res) => {
+  try {
+    const user = await User.findById(req.params.id, 'username email');
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+    res.status(200).json(user);
+  } catch (error) {
+    res.status(500).json({ message: 'Error fetching user', error: error.message });
+  }
+};
+
+
+module.exports = { registerUser, loginUser, getUserById };

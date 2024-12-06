@@ -4,35 +4,45 @@ const Tag = require('../models/tag');
 const User = require('../models/user');
 
 const createBlog = async (req, res) => {
-  const { title, content, categoryNames, tagNames } = req.body;
-
   try {
-    if (!['writer', 'admin'].includes(req.user.role)) {
-      return res.status(403).json({ message: 'Only writers and admins can create blogs' });
+    console.log("Gelen Body:", req.body); // Debug: Gelen veriler
+    console.log("Category Names (Raw):", req.body.categoryNames);
+    console.log("Tag Names (Raw):", req.body.tagNames);
+
+    // Gelen verilerin destructure edilmesi
+    const { title, content, categoryNames, tagNames } = req.body;
+
+    // Kullanıcı rol kontrolü
+    if (!req.user || !['writer', 'admin'].includes(req.user.role)) {
+      return res.status(403).json({
+        message: 'Only writers and admins can create blogs',
+      });
     }
 
-    const imageUrl = req.file ? `/uploads/${req.file.filename}` : '';
+    // **Kategori ve Etiketlerin JSON Array Formatında Olup Olmadığını Kontrol Et**
+    let parsedCategoryNames = [];
+    let parsedTagNames = [];
+    try {
+      parsedCategoryNames = JSON.parse(categoryNames || "[]");
+      parsedTagNames = JSON.parse(tagNames || "[]");
 
-    const categories = await Promise.all(
-      categoryNames.map(async (name) => {
-        let category = await Category.findOne({ name });
-        if (!category) {
-          category = await Category.create({ name, description: `${name} category` });
-        }
-        return category._id;
-      })
-    );
+      if (!Array.isArray(parsedCategoryNames) || !Array.isArray(parsedTagNames)) {
+        throw new Error("Invalid format");
+      }
+    } catch (error) {
+      return res.status(400).json({
+        message: "Invalid format for categories or tags. Must be a JSON array.",
+      });
+    }
 
-    const tags = await Promise.all(
-      tagNames.map(async (name) => {
-        let tag = await Tag.findOne({ name });
-        if (!tag) {
-          tag = await Tag.create({ name });
-        }
-        return tag._id;
-      })
-    );
+    // **Kategorileri ve Etiketleri İşle**
+    const categories = await processCategories(parsedCategoryNames);
+    const tags = await processTags(parsedTagNames);
 
+    // **Görsel Kontrolü**
+    const imageUrl = req.file ? `/uploads/${req.file.filename}` : null;
+
+    // **Blog Oluşturma**
     const newBlog = new Blog({
       title,
       content,
@@ -43,11 +53,66 @@ const createBlog = async (req, res) => {
     });
 
     const savedBlog = await newBlog.save();
-    res.status(201).json(savedBlog);
+
+    // **Başarılı Yanıt**
+    res.status(201).json({
+      message: "Blog created successfully",
+      blog: savedBlog,
+    });
   } catch (error) {
-    res.status(500).json({ message: 'Error creating blog', error: error.message });
+    console.error("Error creating blog:", error.message);
+    res.status(500).json({
+      message: "Error creating blog",
+      error: error.message,
+    });
   }
 };
+
+// **Kategorileri İşleme Fonksiyonu**
+const processCategories = async (categoryNames) => {
+  try {
+    const categories = await Promise.all(
+      categoryNames.map(async (name) => {
+        if (!name.trim()) {
+          throw new Error("Category name cannot be empty");
+        }
+        let category = await Category.findOne({ name });
+        if (!category) {
+          category = await Category.create({
+            name,
+            description: `${name} category`,
+          });
+        }
+        return category._id;
+      })
+    );
+    return categories;
+  } catch (error) {
+    throw new Error("Error processing categories: " + error.message);
+  }
+};
+
+// **Etiketleri İşleme Fonksiyonu**
+const processTags = async (tagNames) => {
+  try {
+    const tags = await Promise.all(
+      tagNames.map(async (name) => {
+        if (!name.trim()) {
+          throw new Error("Tag name cannot be empty");
+        }
+        let tag = await Tag.findOne({ name });
+        if (!tag) {
+          tag = await Tag.create({ name });
+        }
+        return tag._id;
+      })
+    );
+    return tags;
+  } catch (error) {
+    throw new Error("Error processing tags: " + error.message);
+  }
+};
+
 
 const getAllBlogs = async (req, res) => {
   try {

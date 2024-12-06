@@ -9,7 +9,6 @@ const blogSchema = new mongoose.Schema(
     tags: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Tag' }],
     views: { type: Number, default: 0 },
     likes: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }], 
-    views: { type: Number, default: 0 },
     image: { type: String, default: '' }, 
     comments: [
       {

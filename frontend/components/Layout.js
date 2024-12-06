@@ -82,27 +82,6 @@ const Layout = ({ children }) => {
               <span>Users</span>
             </li>
 
-            {/* Roles */}
-            <li
-              className={`flex items-center space-x-4 px-4 py-2 cursor-pointer rounded-lg ${
-                isActive("/admin/roles") ? "bg-orange-500" : "hover:bg-blue-700"
-              }`}
-              onClick={() => router.push("/admin/roles")}
-            >
-              <RiAdminFill size={20} />
-              <span>Roles</span>
-            </li>
-
-            {/* Permissions */}
-            <li
-              className={`flex items-center space-x-4 px-4 py-2 cursor-pointer rounded-lg ${
-                isActive("/admin/permissions") ? "bg-orange-500" : "hover:bg-blue-700"
-              }`}
-              onClick={() => router.push("/admin/permissions")}
-            >
-              <FaKey size={20} />
-              <span>Permissions</span>
-            </li>
           </ul>
         </nav>
       </aside>
